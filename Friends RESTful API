@@ -1,0 +1,201 @@
+public class FriendAPIController : BaseApiController
+    {
+        private IFriendService _service = null;
+        private IAuthenticationService<int> _authService = null;
+        public FriendAPIController(IFriendService service, ILogger<FriendAPIController> logger, IAuthenticationService<int> authService) : base(logger)
+        {
+            _service = service;
+            _authService = authService;
+        }
+
+        [HttpGet("")]
+        public ActionResult<ItemsResponse<FriendV2>> GetAll()
+        {
+            int iCode = 200;
+            BaseResponse response = null;
+
+            try
+            {
+                List<FriendV2> list = _service.GetAllV3();
+
+                if (list == null)
+                {
+                    iCode = 200;
+                    response = new ErrorResponse("Application Resource Not Found.");
+                }
+                else
+                {
+                    response = new ItemsResponse<FriendV2> { Items = list };
+                }
+            }
+            catch (Exception ex)
+            {
+                iCode = 500;
+                response = new ErrorResponse(ex.Message);
+                base.Logger.LogError(ex.ToString());
+            }
+
+            return StatusCode(iCode, response);
+        }
+
+        [HttpGet("{id:int}")]
+        public ActionResult<ItemResponse<FriendV2>> GetById(int id)
+        {
+            int iCode = 200;
+            BaseResponse response = null; 
+
+            try
+            {
+                FriendV2 friend = _service.GetV3(id);
+
+                if (friend == null)
+                {
+                    iCode = 404; 
+                    response = new ErrorResponse("Application Resource Not Found"); 
+                }
+                else
+                {
+                    response = new ItemResponse<FriendV2> { Item = friend }; 
+                }
+            }
+           
+            catch (Exception ex)
+            {
+                iCode = 500;
+                base.Logger.LogError(ex.ToString());
+                response = new ErrorResponse($"Generic Error: ${ex.Message}"); 
+                // return base.StatusCode(500, new ErrorResponse($"Generic Error: ${ex.Message}"));
+            }
+
+            return StatusCode(iCode, response);
+        }
+
+        [HttpPost("")]
+        public ActionResult<ItemResponse<int>> Create(FriendAddRequestV2 model)
+        {
+            int iCode = 200;
+            BaseResponse response = null;
+            //*
+            int userId = _authService.GetCurrentUserId();
+
+            try
+            {
+                _service.AddV2(model, userId);
+                response = new SuccessResponse();
+            }
+         
+            catch (Exception ex)
+            {
+                iCode = 500;
+                base.Logger.LogError(ex.ToString());
+                response = new ErrorResponse($"Generic Error: ${ex.Message}");
+            }
+
+            return StatusCode(iCode, response);
+        }
+
+        [HttpDelete("{id:int}")]
+        public ActionResult<SuccessResponse> Delete(int id)
+        {
+            int iCode = 200;
+            BaseResponse response = null;
+
+            try
+            {
+                _service.DeleteV2(id);
+                response = new SuccessResponse();
+            }
+            catch (Exception ex)
+            {
+                iCode = 500;
+                response = new ErrorResponse(ex.Message);
+            }
+
+            return StatusCode(iCode, response);
+        }
+
+        [HttpPut("{id:int}")]
+        public ActionResult<ItemResponse<int>> UpdateV2(FriendUpdateRequestV2 model)
+        {
+            int iCode = 200;
+            BaseResponse response = null;
+
+            int userId = _authService.GetCurrentUserId();
+
+            try
+            {
+                _service.UpdateV2(model, userId);
+                response = new SuccessResponse();
+            }
+            catch (Exception ex)
+            {
+                iCode = 500;
+                base.Logger.LogError(ex.ToString());
+                response = new ErrorResponse($"Generic Error: ${ex.Message}"); 
+            }
+
+            return StatusCode(iCode, response);
+        }
+
+        [HttpGet("paginate")]
+        public ActionResult<ItemResponse<Paged<FriendV2>>> Pagination(int pageIndex, int pageSize)
+        {
+            ActionResult result = null;
+
+            try
+            {
+                Paged<FriendV2> paged = _service.PaginationV3(pageIndex, pageSize);
+
+                if (paged == null)
+                {
+
+                    result = NotFound404(new ErrorResponse("Application Resource Not Found."));
+                }
+                else
+                {
+                    ItemResponse<Paged<FriendV2>> response = new ItemResponse<Paged<FriendV2>>();
+                    response.Item = paged;
+                    result = Ok200(response);
+                }
+            }
+            catch (Exception ex)
+            {
+
+                result = StatusCode(500, new ErrorResponse(ex.Message.ToString()));
+                base.Logger.LogError(ex.ToString());
+            }
+
+            return result;
+        }
+
+        [HttpGet("Search")]
+        public ActionResult<ItemResponse<Paged<FriendV2>>> Search(int pageIndex, int pageSize, string query)
+        {
+            ActionResult result = null;
+
+            try
+            {
+                Paged<FriendV2> paged = _service.SearchV3( pageIndex,  pageSize,  query);
+
+                if (paged == null)
+                {
+                    
+                    result = NotFound404(new ErrorResponse("Application Resource Not Found."));
+                }
+                else
+                {
+                    ItemResponse<Paged<FriendV2>> response = new ItemResponse<Paged<FriendV2>>();
+                    response.Item = paged;
+                    result = Ok200(response);
+                }
+            }
+            catch (Exception ex)
+            {
+               
+                result = StatusCode(500, new ErrorResponse(ex.Message.ToString()));
+                base.Logger.LogError(ex.ToString());
+            }
+
+            return result;
+        }
+    }
